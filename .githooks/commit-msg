@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -eu
+
+commit_message_file="$1"
+commit_message="$(head -n 1 "$commit_message_file" | tr -d '\r')"
+
+pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9._/-]+\))?!?: .+'
+merge_pattern="^Merge (branch|tag) '"
+
+# Git Flow creates merge commits with Git-generated subjects during release/hotfix
+# finish. Those commits are intentional and should not be blocked by the hook.
+if printf '%s' "$commit_message" | grep -Eq "$merge_pattern"; then
+    exit 0
+fi
+
+if printf '%s' "$commit_message" | grep -Eq "$pattern"; then
+    exit 0
+fi
+
+cat <<'EOF'
+Invalid commit message.
+
+Use Conventional Commits:
+  <type>(optional-scope): <description>
+
+Examples:
+  feat(auth): add token refresh endpoint
+  fix(docker): restore app startup flow
+  chore(ci): add Bitbucket pipeline
+EOF
+
+exit 1
