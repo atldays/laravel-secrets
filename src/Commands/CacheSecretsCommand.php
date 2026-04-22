@@ -13,7 +13,7 @@ class CacheSecretsCommand extends Command
     protected $signature = 'secrets:cache
         {--driver= : Fetch secrets from a specific driver}';
 
-    protected $description = 'Fetch secrets from the provider and cache them locally.';
+    protected $description = 'Fetch secrets from the provider and store them in the configured cache.';
 
     public function handle(SecretsManager $manager): int
     {

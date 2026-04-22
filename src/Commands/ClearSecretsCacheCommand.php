@@ -11,7 +11,7 @@ class ClearSecretsCacheCommand extends Command
 {
     protected $signature = 'secrets:clear';
 
-    protected $description = 'Delete the cached secrets entry.';
+    protected $description = 'Delete the secrets entry from the configured cache.';
 
     public function handle(SecretsManager $manager): int
     {

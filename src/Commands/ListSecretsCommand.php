@@ -11,11 +11,11 @@ class ListSecretsCommand extends Command
 {
     protected $signature = 'secrets:list
         {--driver= : Read from a specific driver when using --fresh}
-        {--fresh : Read directly from the provider instead of the local cache}
+        {--fresh : Read directly from the provider instead of the configured cache}
         {--reveal : Print full secret values}
         {--force : Allow sensitive output in production}';
 
-    protected $description = 'List cached or fresh secrets with masked values by default.';
+    protected $description = 'List secrets from the configured cache or directly from a provider.';
 
     public function handle(): int
     {
@@ -25,7 +25,7 @@ class ListSecretsCommand extends Command
             : Secrets::values();
 
         if ($secrets === []) {
-            $source = $fresh ? 'provider' : 'cache';
+            $source = $fresh ? 'provider' : 'configured cache';
 
             $this->components->warn("No secrets found in {$source}.");
 

@@ -12,12 +12,12 @@ class GetSecretCommand extends Command
     protected $signature = 'secrets:get
         {name : Secret name}
         {--driver= : Read from a specific driver when using --fresh}
-        {--fresh : Read directly from the provider instead of the local cache}
+        {--fresh : Read directly from the provider instead of the configured cache}
         {--reveal : Print the full secret value}
         {--raw : Print only the raw value}
         {--force : Allow sensitive output in production}';
 
-    protected $description = 'Display one secret value from the local cache or provider.';
+    protected $description = 'Display one secret value from the configured cache or a provider.';
 
     public function handle(): int
     {
