@@ -1,0 +1,179 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Atldays\Secrets;
+
+use Atldays\Secrets\Contracts\Driver;
+use Atldays\Secrets\Data\SecretsPayload;
+use Atldays\Secrets\Exceptions\{InvalidFailureMode, InvalidSecretsDriver, SecretsException};
+use Atldays\Secrets\Support\{SecretValue, SecretsStore};
+use Dotenv\Repository\RepositoryInterface as DotenvRepository;
+use Illuminate\Contracts\Config\Repository as Config;
+use Illuminate\Support\Facades\App;
+
+class SecretsManager
+{
+    public function __construct(
+        protected Config $config,
+        protected SecretsStore $cache,
+        protected DotenvRepository $dotenv,
+    ) {}
+
+    /**
+     * @return array<string, string>
+     */
+    public function fetch(?string $driver = null): array
+    {
+        if (is_string($driver) && $driver !== '') {
+            return $this->resolveDriver($driver)->fetch();
+        }
+
+        $merged = [];
+
+        foreach ($this->drivers() as $driverClass) {
+            $merged = array_merge($merged, $this->resolveDriver($driverClass)->fetch());
+        }
+
+        ksort($merged);
+
+        return $merged;
+    }
+
+    public function cache(?string $driver = null): SecretsPayload
+    {
+        $driver = is_string($driver) && $driver !== '' ? $driver : null;
+        $secrets = $this->fetch($driver);
+
+        ksort($secrets);
+
+        $payload = new SecretsPayload(
+            drivers: $driver ? [$driver] : $this->drivers(),
+            secrets: $secrets,
+        );
+
+        $this->cache->put($payload);
+
+        return $payload;
+    }
+
+    public function stored(): SecretsPayload
+    {
+        return $this->cache->get();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function values(): array
+    {
+        $values = [];
+
+        foreach ($this->stored()->secrets as $key => $value) {
+            if (!is_string($key) || $key === '') {
+                continue;
+            }
+
+            $values[$key] = SecretValue::from($value)->toString();
+        }
+
+        return $values;
+    }
+
+    public function clear(): bool
+    {
+        return $this->cache->clear();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function load(): array
+    {
+        try {
+            $secrets = $this->values();
+
+            foreach ($secrets as $key => $value) {
+                $this->dotenv->set($key, $value);
+                putenv("{$key}={$value}");
+                $_ENV[$key] = $value;
+                $_SERVER[$key] = $value;
+
+                $transformed = SecretValue::from($value)->toScalar();
+
+                foreach (array_keys($this->configVariables(), $key, true) as $configPath) {
+                    $this->config->set($configPath, $transformed);
+                }
+            }
+
+            return $secrets;
+        } catch (SecretsException $exception) {
+            $this->handle($exception);
+
+            return [];
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function drivers(): array
+    {
+        $drivers = $this->config->get('secrets.drivers', []);
+
+        if (!is_array($drivers) || $drivers === []) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $driver): string => is_string($driver) ? trim($driver) : '',
+            array_keys($drivers),
+        )));
+    }
+
+    public function key(): string
+    {
+        return $this->cache->key();
+    }
+
+    protected function handle(SecretsException $exception, ?string $mode = null): void
+    {
+        $mode = $mode ?: (string)$this->config->get('secrets.failure_mode', 'throw');
+
+        match ($mode) {
+            'throw' => throw $exception,
+            'warn' => report($exception),
+            'ignore' => null,
+            default => throw InvalidFailureMode::unsupported($mode),
+        };
+    }
+
+    protected function resolveDriver(?string $driver = null): Driver
+    {
+        if (!is_string($driver) || $driver === '') {
+            throw InvalidSecretsDriver::missingClass();
+        }
+
+        if (!in_array($driver, $this->drivers(), true)) {
+            throw InvalidSecretsDriver::notConfigured($driver);
+        }
+
+        $instance = App::make($driver);
+
+        if (!$instance instanceof Driver) {
+            throw InvalidSecretsDriver::invalidImplementation($driver);
+        }
+
+        return $instance;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function configVariables(): array
+    {
+        $variables = $this->config->get('secrets.config_variables', []);
+
+        return is_array($variables) ? $variables : [];
+    }
+}
