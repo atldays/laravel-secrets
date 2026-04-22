@@ -10,7 +10,7 @@ use Atldays\Secrets\Exceptions\{InvalidFailureMode, InvalidSecretsDriver, Secret
 use Atldays\Secrets\Support\{SecretValue, SecretsStore};
 use Dotenv\Repository\RepositoryInterface as DotenvRepository;
 use Illuminate\Contracts\Config\Repository as Config;
-use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\{App, Exceptions};
 
 class SecretsManager
 {
@@ -144,7 +144,7 @@ class SecretsManager
 
         match ($mode) {
             'throw' => throw $exception,
-            'warn' => report($exception),
+            'warn' => Exceptions::report($exception),
             'ignore' => null,
             default => throw InvalidFailureMode::unsupported($mode),
         };
@@ -160,12 +160,10 @@ class SecretsManager
             throw InvalidSecretsDriver::notConfigured($driver);
         }
 
-        $instance = App::make($driver);
-
-        if (!$instance instanceof Driver) {
+        if (!is_a($driver, Driver::class, true)) {
             throw InvalidSecretsDriver::invalidImplementation($driver);
         }
 
-        return $instance;
+        return App::make($driver);
     }
 }
