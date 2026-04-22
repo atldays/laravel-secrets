@@ -8,13 +8,21 @@ use JsonException;
 
 class SecretValue
 {
-    public function __construct(
-        protected mixed $value,
-    ) {}
+    public function __construct(protected mixed $value) {}
 
     public static function from(mixed $value): self
     {
         return new self($value);
+    }
+
+    public static function value(string $value): string
+    {
+        return (string)self::from($value);
+    }
+
+    public static function scalar(string $value): mixed
+    {
+        return self::from($value)->toScalar();
     }
 
     public function toScalar(): mixed

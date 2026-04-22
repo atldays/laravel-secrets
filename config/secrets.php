@@ -58,15 +58,16 @@ return [
     | The cache key where the full secrets payload will be stored.
     |
     | ttl:
-    | The cache lifetime in minutes. When null, secrets are stored forever
-    | until they are explicitly refreshed or cleared.
+    | The cache lifetime in minutes.
+    |
+    | The default value is 43200 minutes, which is equal to 30 days.
     |
     */
 
     'cache' => [
         'store' => env('SECRETS_CACHE_STORE', 'file'),
         'key' => env('SECRETS_CACHE_KEY', 'laravel-secrets'),
-        'ttl' => env('SECRETS_CACHE_TTL'),
+        'ttl' => env('SECRETS_CACHE_TTL', 43200),
     ],
 
     /*

@@ -74,7 +74,7 @@ class SecretsManager
                 continue;
             }
 
-            $values[$key] = SecretValue::from($value)->toString();
+            $values[$key] = SecretValue::value($value);
         }
 
         return $values;
@@ -99,9 +99,11 @@ class SecretsManager
                 $_ENV[$key] = $value;
                 $_SERVER[$key] = $value;
 
-                $transformed = SecretValue::from($value)->toScalar();
+                $transformed = SecretValue::scalar($value);
+                $variables = $this->config->get('secrets.config_variables', []);
+                $variables = is_array($variables) ? $variables : [];
 
-                foreach (array_keys($this->configVariables(), $key, true) as $configPath) {
+                foreach (array_keys($variables, $key, true) as $configPath) {
                     $this->config->set($configPath, $transformed);
                 }
             }
@@ -165,15 +167,5 @@ class SecretsManager
         }
 
         return $instance;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function configVariables(): array
-    {
-        $variables = $this->config->get('secrets.config_variables', []);
-
-        return is_array($variables) ? $variables : [];
     }
 }

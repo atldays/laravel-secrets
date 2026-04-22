@@ -11,19 +11,20 @@ class SecretsStore
 {
     public function __construct(
         protected Cache $cache,
-        protected string $key,
-        protected ?int $ttl = null,
-    ) {}
+        ?string $key = null,
+        int|string|null $ttl = null,
+    ) {
+        $this->key = is_string($key) && trim($key) !== '' ? trim($key) : 'laravel-secrets';
+        $this->ttl = is_numeric($ttl) && (int)$ttl > 0 ? (int)$ttl : 43200;
+    }
+
+    protected string $key;
+
+    protected int $ttl = 43200;
 
     public function put(SecretsPayload $payload): void
     {
         $payload = $payload->toArray();
-
-        if ($this->ttl === null) {
-            $this->cache->forever($this->key, $payload);
-
-            return;
-        }
 
         $this->cache->put($this->key, $payload, $this->ttl * 60);
     }
