@@ -85,11 +85,12 @@ class SecretsManager
         return $this->cache->clear();
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public function load(): array
+    public function load(): int
     {
+        if (!$this->config->get('secrets.apply_secrets', true)) {
+            return 0;
+        }
+
         try {
             $secrets = $this->values();
 
@@ -108,11 +109,11 @@ class SecretsManager
                 }
             }
 
-            return $secrets;
+            return count($secrets);
         } catch (SecretsException $exception) {
             $this->handle($exception);
 
-            return [];
+            return 0;
         }
     }
 

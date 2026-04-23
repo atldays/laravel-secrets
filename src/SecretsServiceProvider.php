@@ -55,10 +55,6 @@ class SecretsServiceProvider extends PackageServiceProvider
      */
     public function packageBooted(): void
     {
-        if (!$this->app->make(Config::class)->get('secrets.apply_secrets', true)) {
-            return;
-        }
-
         $this->app->make(SecretsManager::class)->load();
     }
 
