@@ -54,7 +54,7 @@ Currently supported drivers:
 
 - `AWS Secrets Manager`
 
-More drivers are welcome. A dedicated driver contribution guide will be added in `CONTRIBUTING.md`.
+More drivers are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the driver contribution workflow.
 
 ## Installation
 
