@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use Atldays\Secrets\Data\AwsSecretManagerConfig;
+use Atldays\Secrets\Filters\AwsSecretManagerFilter;
 use Atldays\Secrets\SecretsManager;
 use Tests\Fakes\FirstFakeDriver;
 use Tests\TestCase;
@@ -49,8 +50,10 @@ class SecretsHydrationTest extends TestCase
             'tags' => 'application:api|admin,environment:production',
             'prefixes' => 'project/prod/, project/shared/',
             'names' => 'DB_PASSWORD, APP_KEY',
+            'filters' => AwsSecretManagerFilter::class,
         ]);
 
+        $this->assertSame([AwsSecretManagerFilter::class], $config->filters);
         $this->assertSame([
             'application' => ['api', 'admin'],
             'environment' => ['production'],

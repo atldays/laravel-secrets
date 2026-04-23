@@ -12,6 +12,8 @@
 /coverage/
 
 # Laravel / local runtime files
+/\.env
+/\.env.*
 /database.sqlite
 /tests/database/database.sqlite
 /storage/*.key

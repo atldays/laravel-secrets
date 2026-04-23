@@ -1,6 +1,7 @@
 <?php
 
 use Atldays\Secrets\Drivers\AwsSecretManager;
+use Atldays\Secrets\Filters\AwsSecretManagerFilter;
 
 return [
 
@@ -164,11 +165,68 @@ return [
 
             /*
             |--------------------------------------------------------------------------
+            | List Max Results
+            |--------------------------------------------------------------------------
+            |
+            | Optionally limit how many secrets AWS Secrets Manager should
+            | return per ListSecrets page.
+            |
+            | When set, the package passes this value to the AWS API as
+            | MaxResults and continues paginating until every page is read.
+            |
+            | This is mainly useful when you want explicit control over
+            | pagination behavior, including integration testing.
+            |
+            */
+
+            'list_max_results' => env('AWS_SECRETS_MANAGER_LIST_MAX_RESULTS'),
+
+            /*
+            |--------------------------------------------------------------------------
             | Filter
             |--------------------------------------------------------------------------
             |
-            | Define the raw filter input for AWS Secret Manager secret
-            | selection.
+            | Define which filter class or classes should decide whether an AWS
+            | secret should be included in the cached payload.
+            |
+            | You may provide:
+            | - one filter class name
+            | - an array of filter class names
+            |
+            | Every filter class must implement:
+            | Atldays\Secrets\Contracts\SecretFilter
+            |
+            | The default built-in AWS filter understands the "filter_options"
+            | values defined below.
+            |
+            | If the resolved filters array is empty, all available secrets
+            | match.
+            |
+            */
+
+            'filter' => AwsSecretManagerFilter::class,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Filter Mode
+            |--------------------------------------------------------------------------
+            |
+            | Control how multiple filter classes should be combined.
+            |
+            | Supported values:
+            | - or: at least one filter class must match the secret
+            | - and: every filter class must match the secret
+            |
+            */
+
+            'filter_mode' => env('AWS_SECRETS_MANAGER_FILTER_MODE', 'or'),
+
+            /*
+            |--------------------------------------------------------------------------
+            | Filter Options
+            |--------------------------------------------------------------------------
+            |
+            | Define the raw options used by the built-in AWS filter class.
             |
             | tags:
             | Raw tag expression, for example:
@@ -180,12 +238,12 @@ return [
             | names:
             | Raw comma-separated list of exact secret names.
             |
-            | When multiple filter groups are provided, the AWS driver treats
-            | them as OR conditions. If all filters are empty, no secrets match.
+            | The built-in AWS filter treats these options as OR conditions.
+            | If all filter options are empty, all available secrets match.
             |
             */
 
-            'filter' => [
+            'filter_options' => [
                 'tags' => env('AWS_SECRETS_MANAGER_TAGS'),
                 'prefixes' => env('AWS_SECRETS_MANAGER_PREFIXES'),
                 'names' => env('AWS_SECRETS_MANAGER_NAMES'),

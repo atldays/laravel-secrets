@@ -4,16 +4,24 @@ declare(strict_types=1);
 
 namespace Atldays\Secrets\Drivers;
 
-use Atldays\Secrets\Contracts\Driver;
+use Atldays\Secrets\Contracts\{Driver, SecretFilter};
 use Atldays\Secrets\Data\{AwsSecretManagerConfig, SecretReference};
-use Atldays\Secrets\Exceptions\{InvalidKeyStrategy, MissingSecretIdentifier};
+use Atldays\Secrets\Exceptions\{InvalidFilterMode, InvalidKeyStrategy, InvalidSecretFilter, MissingSecretIdentifier};
 use Atldays\Secrets\Support\SecretValue;
 use Aws\SecretsManager\SecretsManagerClient;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Str;
 use JsonException;
 
 class AwsSecretManager implements Driver
 {
+    protected ?SecretsManagerClient $client = null;
+
+    /**
+     * @var list<SecretFilter>|null
+     */
+    protected ?array $filters = null;
+
     public function __construct(
         protected AwsSecretManagerConfig $config,
     ) {}
@@ -46,6 +54,11 @@ class AwsSecretManager implements Driver
         ]);
     }
 
+    protected function client(): SecretsManagerClient
+    {
+        return $this->client ??= $this->createClient();
+    }
+
     /**
      * @return list<SecretReference>
      */
@@ -53,10 +66,14 @@ class AwsSecretManager implements Driver
     {
         $references = [];
         $nextToken = null;
-        $client = $this->createClient();
+        $client = $this->client();
 
         do {
             $params = [];
+
+            if ($this->config->listMaxResults !== null) {
+                $params['MaxResults'] = $this->config->listMaxResults;
+            }
 
             if (is_string($nextToken) && $nextToken !== '') {
                 $params['NextToken'] = $nextToken;
@@ -86,32 +103,22 @@ class AwsSecretManager implements Driver
 
     protected function matches(SecretReference $secret): bool
     {
-        $matched = false;
+        $filters = $this->filters();
 
-        if ($this->config->tags !== []) {
-            $matched = $this->matchesTags($secret);
+        if ($filters === []) {
+            return true;
         }
 
-        if ($this->config->prefixes !== []) {
-            $matched = Str::startsWith($secret->name, $this->config->prefixes) || $matched;
-        }
+        $matches = array_map(
+            static fn (SecretFilter $filter): bool => $filter->matches($secret),
+            $filters,
+        );
 
-        if ($this->config->names !== []) {
-            $matched = in_array($secret->name, $this->config->names, true) || $matched;
-        }
-
-        return $matched;
-    }
-
-    protected function matchesTags(SecretReference $secret): bool
-    {
-        foreach ($this->config->tags as $key => $values) {
-            if (in_array((string)$secret->tag($key), $values, true)) {
-                return true;
-            }
-        }
-
-        return false;
+        return match ($this->config->filterMode) {
+            'and' => !in_array(false, $matches, true),
+            'or' => in_array(true, $matches, true),
+            default => throw InvalidFilterMode::unsupported($this->config->filterMode),
+        };
     }
 
     /**
@@ -121,11 +128,15 @@ class AwsSecretManager implements Driver
      */
     protected function normalizeSecret(SecretReference $reference): array
     {
-        $result = $this->createClient()->getSecretValue([
+        $result = $this->client()->getSecretValue([
             'SecretId' => $reference->identifier ?? throw MissingSecretIdentifier::awsSecretManager(),
         ]);
 
-        $value = $result->get('SecretString') ?? $result->get('SecretBinary');
+        $value = $result->get('SecretString');
+
+        if (!is_string($value) || $value === '') {
+            $value = $this->decodeBinarySecret($result->get('SecretBinary'));
+        }
 
         if (!is_string($value) || $value === '') {
             return [];
@@ -156,6 +167,21 @@ class AwsSecretManager implements Driver
         return [
             $this->deriveKey($reference->name) => $value,
         ];
+    }
+
+    protected function decodeBinarySecret(mixed $value): ?string
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        $decoded = base64_decode($value, true);
+
+        if ($decoded === false) {
+            return $value;
+        }
+
+        return base64_encode($decoded) === $value ? $decoded : $value;
     }
 
     /**
@@ -192,5 +218,29 @@ class AwsSecretManager implements Driver
             'name' => $name,
             default => throw InvalidKeyStrategy::unsupported($strategy),
         };
+    }
+
+    /**
+     * @return list<SecretFilter>
+     */
+    protected function filters(): array
+    {
+        if (is_array($this->filters)) {
+            return $this->filters;
+        }
+
+        $this->filters = [];
+
+        foreach ($this->config->filters as $filter) {
+            if (!is_a($filter, SecretFilter::class, true)) {
+                throw InvalidSecretFilter::invalidImplementation($filter);
+            }
+
+            $this->filters[] = App::make($filter, [
+                'config' => $this->config,
+            ]);
+        }
+
+        return $this->filters;
     }
 }
