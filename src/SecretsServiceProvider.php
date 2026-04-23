@@ -55,7 +55,7 @@ class SecretsServiceProvider extends PackageServiceProvider
      */
     public function packageBooted(): void
     {
-        $this->app->make(SecretsManager::class)->load();
+        $this->app->make(SecretsManager::class)->apply();
     }
 
     protected function registerAwsSecretManager(): void

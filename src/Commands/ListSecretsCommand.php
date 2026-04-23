@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Atldays\Secrets\Commands;
 
 use Atldays\Secrets\Facades\Secrets;
+use Atldays\Secrets\Support\SecretsStore;
 use Illuminate\Console\Command;
 
 class ListSecretsCommand extends Command
@@ -17,7 +18,7 @@ class ListSecretsCommand extends Command
 
     protected $description = 'List secrets from the configured cache or directly from a provider.';
 
-    public function handle(): int
+    public function handle(SecretsStore $store): int
     {
         $fresh = (bool)$this->option('fresh');
         $secrets = $fresh
@@ -41,7 +42,7 @@ class ListSecretsCommand extends Command
         $this->components->info(sprintf(
             'Showing %d secret(s) from %s.',
             count($secrets),
-            $fresh ? 'the provider' : 'cache key [' . Secrets::key() . ']',
+            $fresh ? 'the provider' : 'cache key [' . $store->key() . ']',
         ));
 
         foreach ($secrets as $key => $value) {

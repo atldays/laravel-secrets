@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Atldays\Secrets\Commands;
 
 use Atldays\Secrets\SecretsManager;
+use Atldays\Secrets\Support\SecretsStore;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -15,7 +16,7 @@ class CacheSecretsCommand extends Command
 
     protected $description = 'Fetch secrets from the provider and store them in the configured cache.';
 
-    public function handle(SecretsManager $manager): int
+    public function handle(SecretsManager $manager, SecretsStore $store): int
     {
         try {
             $payload = $manager->cache($this->option('driver') ?: null);
@@ -27,7 +28,7 @@ class CacheSecretsCommand extends Command
 
         $count = count($payload->secrets);
 
-        $this->components->info("Cached {$count} secret(s) using cache key [{$manager->key()}].");
+        $this->components->info("Cached {$count} secret(s) using cache key [{$store->key()}].");
 
         return self::SUCCESS;
     }

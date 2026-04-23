@@ -85,7 +85,7 @@ class SecretsManager
         return $this->cache->clear();
     }
 
-    public function load(): int
+    public function apply(): int
     {
         if (!$this->config->get('secrets.apply_secrets', true)) {
             return 0;
@@ -132,11 +132,6 @@ class SecretsManager
             static fn (mixed $driver): string => is_string($driver) ? trim($driver) : '',
             array_keys($drivers),
         )));
-    }
-
-    public function key(): string
-    {
-        return $this->cache->key();
     }
 
     protected function handle(SecretsException $exception, ?string $mode = null): void
