@@ -1,12 +1,16 @@
 {
     "name": "atldays/laravel-secrets",
-    "description": "Fetch secrets from external providers, cache them locally, and hydrate selected Laravel config values during boot.",
+    "description": "Load secrets from external providers and apply them to Laravel from a cached payload.",
     "keywords": [
         "atldays",
         "laravel",
         "secrets",
+        "secret-manager",
         "aws",
-        "environment"
+        "aws-secrets-manager",
+        "config",
+        "environment",
+        "credentials"
     ],
     "type": "library",
     "license": "MIT",
