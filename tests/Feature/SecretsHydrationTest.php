@@ -17,8 +17,9 @@ class SecretsHydrationTest extends TestCase
         $manager = $this->app->make(SecretsManager::class);
 
         $manager->cache();
-        $manager->load();
+        $loaded = $manager->load();
 
+        $this->assertSame(4, $loaded);
         $this->assertSame('base64:test-key', getenv('APP_KEY'));
         $this->assertSame('override-password', getenv('DB_PASSWORD'));
         $this->assertSame('base64:test-key', config('app.key'));
@@ -39,9 +40,25 @@ class SecretsHydrationTest extends TestCase
         $manager = $this->app->make(SecretsManager::class);
 
         $manager->cache();
-        $manager->load();
+        $loaded = $manager->load();
 
+        $this->assertSame(2, $loaded);
         $this->assertFalse(config('database.connections.pgsql.password'));
+    }
+
+    public function test_it_returns_zero_when_secret_application_is_disabled(): void
+    {
+        $manager = $this->app->make(SecretsManager::class);
+
+        $manager->cache();
+        $this->app['config']->set('secrets.apply_secrets', false);
+
+        $loaded = $manager->load();
+
+        $this->assertSame(0, $loaded);
+        $this->assertFalse(array_key_exists('APP_KEY', $_ENV));
+        $this->assertFalse(array_key_exists('APP_KEY', $_SERVER));
+        $this->assertNotSame('override-password', config('database.connections.pgsql.password'));
     }
 
     public function test_it_casts_aws_filter_configuration_into_structured_values(): void

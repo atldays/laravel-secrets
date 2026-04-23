@@ -6,9 +6,11 @@ namespace Tests\Feature;
 
 use Atldays\Secrets\Data\AwsSecretManagerConfig;
 use Atldays\Secrets\Drivers\AwsSecretManager;
+use Atldays\Secrets\Filters\AwsSecretManagerFilter;
 use Aws\Exception\AwsException;
 use Aws\Kms\KmsClient;
 use Aws\SecretsManager\SecretsManagerClient;
+use Tests\Fakes\Filters\{KmsNameFilter, PlainPrefixFilter, TestingEnvironmentFilter};
 use Tests\TestCase;
 
 class AwsSecretManagerIntegrationTest extends TestCase
@@ -44,6 +46,76 @@ class AwsSecretManagerIntegrationTest extends TestCase
 
         $this->assertSame([
             'KMS_SECRET' => 'kms-integration-value',
+        ], $driver->fetch());
+    }
+
+    public function test_it_fetches_real_aws_secrets_through_a_tag_filter(): void
+    {
+        $this->seedIntegrationSecrets();
+
+        $driver = new AwsSecretManager(AwsSecretManagerConfig::from([
+            'region' => $this->awsRegion(),
+            'filters' => AwsSecretManagerFilter::class,
+            'tags' => 'scope:integration',
+        ]));
+
+        $this->assertSame([
+            'APP_KEY' => 'base64:integration-key',
+            'BINARY_SECRET' => 'binary-integration-value',
+            'DB_PASSWORD' => 'integration-password',
+            'DB_PORT' => '5432',
+            'KMS_SECRET' => 'kms-integration-value',
+            'PAGE_SECRET_1' => 'page-value-1',
+            'PAGE_SECRET_2' => 'page-value-2',
+            'PAGE_SECRET_3' => 'page-value-3',
+            'PAGE_SECRET_4' => 'page-value-4',
+            'PAGE_SECRET_5' => 'page-value-5',
+            'WRAPPED_APP_KEY' => 'base64:wrapped-key',
+        ], $driver->fetch());
+    }
+
+    public function test_it_combines_live_custom_filters_with_and_mode(): void
+    {
+        $this->seedIntegrationSecrets();
+
+        $driver = new AwsSecretManager(AwsSecretManagerConfig::from([
+            'region' => $this->awsRegion(),
+            'filterMode' => 'and',
+            'filters' => [
+                TestingEnvironmentFilter::class,
+                PlainPrefixFilter::class,
+            ],
+        ]));
+
+        $this->assertSame([
+            'APP_KEY' => 'base64:integration-key',
+            'BINARY_SECRET' => 'binary-integration-value',
+            'DB_PASSWORD' => 'integration-password',
+            'DB_PORT' => '5432',
+            'WRAPPED_APP_KEY' => 'base64:wrapped-key',
+        ], $driver->fetch());
+    }
+
+    public function test_it_combines_live_custom_filters_with_or_mode(): void
+    {
+        $this->seedIntegrationSecrets();
+
+        $driver = new AwsSecretManager(AwsSecretManagerConfig::from([
+            'region' => $this->awsRegion(),
+            'filterMode' => 'or',
+            'filters' => [
+                PlainPrefixFilter::class,
+                KmsNameFilter::class,
+            ],
+        ]));
+
+        $this->assertSame([
+            'APP_KEY' => 'base64:integration-key',
+            'BINARY_SECRET' => 'binary-integration-value',
+            'DB_PASSWORD' => 'integration-password',
+            'DB_PORT' => '5432',
+            'KMS_SECRET' => 'kms-integration-value',
+            'WRAPPED_APP_KEY' => 'base64:wrapped-key',
         ], $driver->fetch());
     }
 

@@ -6,11 +6,13 @@ namespace Tests\Feature;
 
 use Atldays\Secrets\Data\AwsSecretManagerConfig;
 use Atldays\Secrets\Drivers\AwsSecretManager;
+use Atldays\Secrets\Exceptions\{InvalidFilterMode, InvalidSecretFilter};
 use Atldays\Secrets\Filters\AwsSecretManagerFilter;
 use Aws\{CommandInterface, MockHandler, Result};
 use Aws\SecretsManager\SecretsManagerClient;
 use Psr\Http\Message\RequestInterface;
 use Tests\Fakes\Filters\{PlainPrefixFilter, ProductionTagFilter};
+use Tests\Fakes\NotAFilter;
 use Tests\TestCase;
 
 class AwsSecretManagerTest extends TestCase
@@ -358,6 +360,59 @@ class AwsSecretManagerTest extends TestCase
             'APP_KEY' => 'base64:test-key',
             'DB_PASSWORD' => 'secret-password',
         ], $driver->fetch());
+    }
+
+    public function test_it_rejects_invalid_filter_classes(): void
+    {
+        $driver = new TestAwsSecretManager(
+            config: AwsSecretManagerConfig::from([
+                'filters' => [
+                    NotAFilter::class,
+                ],
+            ]),
+            fakeClient: $this->mockClient([
+                new Result([
+                    'SecretList' => [
+                        [
+                            'Name' => '/atldays/laravel-secrets/test/plain/APP_KEY',
+                            'ARN' => 'arn:plain',
+                            'Tags' => [],
+                        ],
+                    ],
+                ]),
+            ]),
+        );
+
+        $this->expectException(InvalidSecretFilter::class);
+
+        $driver->fetch();
+    }
+
+    public function test_it_rejects_unsupported_filter_modes(): void
+    {
+        $driver = new TestAwsSecretManager(
+            config: AwsSecretManagerConfig::from([
+                'filterMode' => 'invalid',
+                'filters' => [
+                    PlainPrefixFilter::class,
+                ],
+            ]),
+            fakeClient: $this->mockClient([
+                new Result([
+                    'SecretList' => [
+                        [
+                            'Name' => '/atldays/laravel-secrets/test/plain/APP_KEY',
+                            'ARN' => 'arn:plain',
+                            'Tags' => [],
+                        ],
+                    ],
+                ]),
+            ]),
+        );
+
+        $this->expectException(InvalidFilterMode::class);
+
+        $driver->fetch();
     }
 
     /**
