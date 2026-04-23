@@ -22,6 +22,15 @@ Examples:
 - provider-specific testing utilities
 - improvements to live and adapter-level coverage
 
+## Current Compatibility
+
+The package currently targets:
+
+- PHP `8.1+`
+- Laravel `10`, `11`, `12`, and `13`
+
+Contributions should preserve that support matrix unless the change is explicitly intended to raise the minimum supported version.
+
 ## Development Workflow
 
 This repository follows two conventions:

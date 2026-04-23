@@ -62,6 +62,16 @@ More drivers are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the driver 
 composer require atldays/laravel-secrets
 ```
 
+## Compatibility
+
+Current support matrix:
+
+- PHP `8.1+`
+- Laravel `10`, `11`, `12`, and `13`
+- AWS Secrets Manager as the first built-in driver
+
+The package is tested in CI across the supported Laravel versions, and the AWS driver also includes live integration coverage.
+
 Publish the config when you want to customize the package:
 
 ```bash
