@@ -1,0 +1,81 @@
+{
+    "name": "atldays/laravel-secrets",
+    "description": "Load secrets from external providers and apply them to Laravel from a cached payload.",
+    "keywords": [
+        "atldays",
+        "laravel",
+        "secrets",
+        "secret-manager",
+        "aws",
+        "aws-secrets-manager",
+        "config",
+        "environment",
+        "credentials"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/atldays/laravel-secrets",
+    "support": {
+        "issues": "https://github.com/atldays/laravel-secrets/issues",
+        "source": "https://github.com/atldays/laravel-secrets"
+    },
+    "authors": [
+        {
+            "name": "Anjey Tsibylskij",
+            "homepage": "https://github.com/atldays",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "aws/aws-sdk-php": "^3.337",
+        "illuminate/console": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/contracts": "^10.0|^11.0|^12.0|^13.0",
+        "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+        "spatie/laravel-data": "^4.20",
+        "spatie/laravel-package-tools": "^1.92"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.13|^1.24",
+        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+        "phpunit/phpunit": "^10.5|^11.5|^12.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Atldays\\Secrets\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "hooks:install": "git config core.hooksPath .githooks",
+        "test": "vendor/bin/phpunit",
+        "format": "vendor/bin/pint",
+        "format:test": "vendor/bin/pint --test",
+        "check": [
+            "@format:test",
+            "@test"
+        ],
+        "post-install-cmd": [
+            "@hooks:install"
+        ],
+        "post-update-cmd": [
+            "@hooks:install"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Atldays\\Secrets\\SecretsServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
